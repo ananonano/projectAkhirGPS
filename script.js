@@ -12,7 +12,7 @@ const map = L.map('map', { zoomControl: false }).setView([-7.7956, 110.3695], 13
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
 
-let markerCluster = L.markerclusterGroup({ maxClusterRadius: 40 });
+let markerCluster = L.markerClusterGroup({ maxClusterRadius: 40 });
 map.addLayer(markerCluster);
 
 // Variabel Global
@@ -227,7 +227,7 @@ function locateUser() {
         userLng = pos.coords.longitude;
 
         if (userMarker) map.removeLayer(userMarker);
-        userMarker = L.marker([userLat, userLng], {icon: userIcon}).addTo(map).bindPopup("Anda").openPopup();
+        userMarker = L.marker([userLat, userLng], {icon: iconUser}).addTo(map).bindPopup("Anda").openPopup();
         map.setView([userLat, userLng], 14);
 
         calculateNearby();
@@ -292,7 +292,7 @@ window.swapHalte = function() {
 function renderMarkers() {
     markerCluster.clearLayers();
     dbHalte.forEach(h => {
-        const m = L.marker([h.latitude, h.longitude], {icon: halteIcon});
+        const m = L.marker([h.latitude, h.longitude], {icon: iconHalte});
         m.bindPopup(`<b>${h.nama_halte}</b><br>${h.info_lokasi}`);
         m.on('click', () => {
             // Auto set ke Start Halte kalau diklik
