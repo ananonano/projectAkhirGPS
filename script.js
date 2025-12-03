@@ -344,13 +344,53 @@ function drawUserPath(startHalte) {
 
     if (userLat && userLng) {
         const control = L.Routing.control({
-            waypoints: [L.latLng(userLat, userLng), L.latLng(startHalte.latitude, startHalte.longitude)],
-            lineOptions: { styles: [{ color: '#64748B', opacity: 0.8, weight: 6, dashArray: '10, 10' }] },
-            createMarker: () => null, addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false, showAlternatives: false,
-            containerClassName: 'hidden'
-        }).addTo(map);
+            waypoints: [
+                L.latLng(userLat, userLng),
+                L.latLng(startHalte.latitude, startHalte.longitude)
+            ],
+            lineOptions: { 
+                styles: [{ color: '#64748B', opacity: 0.8, weight: 6, dashArray: '10, 15' }] 
+            },
+            createMarker: () => null, 
+            addWaypoints: false, draggableWaypoints: false, 
+            fitSelectedRoutes: false, showAlternatives: false,
+            containerClassName: 'hidden',
+            router: L.Routing.osrmv1({
+                serviceUrl: 'https://router.project-osrm.org/route/v1',
+                profile: 'foot' 
+            })
+        });
+
+        control.on('routesfound', function(e) {
+            const routes = e.routes;
+            const summary = routes[0].summary;
+            const totalMeters = summary.totalDistance;
+
+            // --- RUMUS MANUAL WAKTU JALAN KAKI ---
+            // Kecepatan rata-rata jalan kaki: 4.5 km/jam (sekitar 75 meter/menit)
+            const walkingSpeedMeterPerMin = 75; 
+            const minutes = Math.ceil(totalMeters / walkingSpeedMeterPerMin);
+
+            // Format Jarak
+            let distText = totalMeters < 1000 ? `${Math.round(totalMeters)} m` : `${(totalMeters / 1000).toFixed(2)} km`;
+            let timeText = minutes + " mnt";
+
+            // Titik tengah
+            const coords = routes[0].coordinates;
+            const midPoint = coords[Math.floor(coords.length / 2)];
+
+            // Tooltip
+            L.tooltip({
+                permanent: true, direction: 'center',
+                className: 'bg-white border border-slate-300 text-slate-700 text-[10px] font-bold px-2 py-1 rounded shadow-sm'
+            })
+            .setLatLng([midPoint.lat, midPoint.lng])
+            .setContent(`🚶 Jalan: ${distText} (${timeText})`)
+            .addTo(userPathLayer);
+        });
+
+        control.addTo(map);
         routeLayers.push(control); 
-        
         map.fitBounds(L.latLngBounds([[userLat, userLng], [startHalte.latitude, startHalte.longitude]]), {padding: [100,100]});
     } else {
         alert("Lokasi GPS belum ditemukan. Pastikan GPS aktif.");
@@ -436,9 +476,46 @@ function renderMultiLegResult(result) {
                 }
                 return null;
             },
-            addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: true, showAlternatives: false,
-            containerClassName: 'hidden'
-        }).addTo(map);
+            addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: false, showAlternatives: false,
+            containerClassName: 'hidden',
+            router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'driving' })
+        });
+
+        // EVENT LISTENER: Hitung Manual Waktu Bus
+        control.on('routesfound', function(e) {
+            const routes = e.routes;
+            const summary = routes[0].summary;
+            const totalMeters = summary.totalDistance;
+
+            // --- RUMUS MANUAL WAKTU BUS ---
+            // Asumsi kecepatan rata-rata bus dalam kota = 25 km/jam (sekitar 416 meter/menit)
+            // Ditambah penalti waktu berhenti di setiap halte (misal 1 menit per halte)
+            const busSpeedMeterPerMin = 416; 
+            let travelTime = Math.ceil(totalMeters / busSpeedMeterPerMin);
+            
+            // Tambah waktu ngetem/berhenti per halte (opsional, biar makin real)
+            const stopPenalty = seg.stops.length * 1; // 1 menit per halte
+            const totalMinutes = travelTime + stopPenalty;
+
+            let distText = totalMeters < 1000 ? `${Math.round(totalMeters)} m` : `${(totalMeters / 1000).toFixed(2)} km`;
+            let timeText = totalMinutes + " mnt";
+
+            const coords = routes[0].coordinates;
+            const midPoint = coords[Math.floor(coords.length / 2)];
+
+            L.tooltip({
+                permanent: true, direction: 'center',
+                className: 'bg-white border-2 text-slate-800 text-[10px] font-bold px-2 py-1 rounded shadow-md',
+            })
+            .setLatLng([midPoint.lat, midPoint.lng])
+            .setContent(`<span style="color:${color}">Bus ${seg.line}</span>: ${distText} (${timeText})`)
+            .addTo(map);
+
+            const detailText = document.getElementById(`seg-detail-${idx}`);
+            if(detailText) detailText.innerHTML = `Jarak: <b>${distText}</b> • Est. Waktu: <b>${timeText}</b>`;
+        });
+
+        control.addTo(map);
         routeLayers.push(control);
 
         stepsList.innerHTML += `
@@ -448,6 +525,9 @@ function renderMultiLegResult(result) {
                 <div class="text-xs text-slate-600">
                     <p>📍 Dari: <b>${seg.from.nama_halte}</b></p>
                     <p>🏁 Turun: <b>${seg.to.nama_halte}</b></p>
+                </div>
+                <div class="text-[10px] text-slate-500 mt-1" id="seg-detail-${idx}">
+                    <i>Menghitung jarak & waktu...</i>
                 </div>
                 <div class="text-[10px] text-slate-400 mt-1 italic">(${seg.stops.length} perhentian)</div>
             </div>`;
