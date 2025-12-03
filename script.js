@@ -1,6 +1,4 @@
-// ==========================================
 // 1. CONFIG & SETUP
-// ==========================================
 const SUPABASE_URL = 'https://zxcsqybwjldyltocrpdh.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4Y3NxeWJ3amxkeWx0b2NycGRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1OTYwNjQsImV4cCI6MjA4MDE3MjA2NH0.Ff9XBydXZvRe7ELTjT6tfvCFF0SY5csOoPXV96sUqTQ';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -15,7 +13,7 @@ map.addLayer(markerCluster);
 
 // Layer Groups
 let exploreLayer = L.featureGroup().addTo(map); // Untuk jalur explorasi
-let userPathLayer = L.featureGroup().addTo(map); // KHUSUS Jalur User -> Halte
+let userPathLayer = L.featureGroup().addTo(map); // KHUSUS Jalur User 
 let routeLayers = []; // Array untuk menyimpan control routing
 
 // Variabel Global
@@ -39,10 +37,7 @@ const defaultColor = '#64748B';
 const iconHalte = L.divIcon({ className: 'custom-pin', html: `<div style="background-color:#FACC15; width:16px; height:16px; border-radius:50%; border:2px solid black;"></div>`, iconSize: [16,16] });
 const iconUser = L.divIcon({ className: 'custom-pin', html: `<div style="background-color:#2563EB; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow: 0 0 10px rgba(37,99,235,0.5);"></div>`, iconSize: [20,20] });
 
-
-// ==========================================
 // 2. FITUR GPS REALTIME
-// ==========================================
 const locateControl = L.Control.extend({
     options: { position: 'bottomright' },
     onAdd: function (map) {
@@ -85,10 +80,7 @@ function startGPS(forceCenter = false) {
     );
 }
 
-
-// ==========================================
 // 3. INIT DATA
-// ==========================================
 async function initApp() {
     try {
         let { data: dJalur } = await supabase.from('jalur_transjogja').select('*');
@@ -140,7 +132,7 @@ function setupSearchInput(elementId) {
         let filtered = dbHalte;
         if (filterText) filtered = dbHalte.filter(h => h.nama_halte.toLowerCase().includes(filterText.toLowerCase()));
         
-        const displayData = filtered.slice(0, 100);
+        const displayData = filtered;
 
         if (displayData.length > 0) {
             displayData.forEach(h => {
@@ -163,34 +155,25 @@ function setupSearchInput(elementId) {
         }
     };
 
-    // --- EVENT LISTENER BARU (TOGGLE LOGIC) ---
-
-    // 1. Saat Input di-KLIK
     input.addEventListener('click', (e) => {
-        e.stopPropagation(); // Stop event bubbling biar gak dianggap klik "document"
+        e.stopPropagation(); 
         
         const isHidden = list.classList.contains('hidden');
 
-        // Tutup SEMUA list lain dulu (Biar gak tumpang tindih)
         document.querySelectorAll('.search-list').forEach(el => el.classList.add('hidden'));
 
         if (isHidden) {
-            // Kalau tadinya tutup -> BUKA
             renderList(input.value); 
         } else {
-            // Kalau tadinya buka -> TUTUP
             list.classList.add('hidden');
         }
     });
 
-    // 2. Saat mengetik
     input.addEventListener('input', () => {
-        // Tutup list lain
         document.querySelectorAll('.search-list').forEach(el => el.classList.add('hidden'));
         renderList(input.value);
     });
 
-    // 3. Klik di luar wrapper -> Tutup dropdown ini
     document.addEventListener('click', (e) => {
         if (!wrapper.contains(e.target)) {
             list.classList.add('hidden');
@@ -198,10 +181,7 @@ function setupSearchInput(elementId) {
     });
 }
 
-
-// ==========================================
 // 4. EXPLORASI JALUR
-// ==========================================
 function setupExplorationUI() {
     const contentExplore = document.getElementById('contentExplore');
     
@@ -240,7 +220,7 @@ function setupExplorationUI() {
 function showJalurRoute(jalurData) {
     // FITUR TOGGLE
     if (activeRouteCode === jalurData.kode_jalur) {
-        clearRoutes(); // Bersih-bersih total
+        clearRoutes(); 
         renderMarkers(); 
         document.getElementById('jalurDetail').classList.add('hidden');
         activeRouteCode = null;
@@ -248,7 +228,7 @@ function showJalurRoute(jalurData) {
     }
     
     activeRouteCode = jalurData.kode_jalur;
-    clearRoutes(); // HAPUS RUTE LAMA SEBELUM GAMBAR BARU
+    clearRoutes(); 
     markerCluster.clearLayers(); 
 
     const color = routeColors[jalurData.kode_jalur] || defaultColor;
@@ -332,10 +312,7 @@ function sortHalteByLocation(halteList) {
     return sorted;
 }
 
-
-// ==========================================
 // 5. ALGORITMA RUTE (MULTI-TRANSIT BFS)
-// ==========================================
 document.getElementById('btnFindRoute').addEventListener('click', () => {
     const startInput = document.getElementById('startHalte');
     const endInput = document.getElementById('endHalte');
@@ -349,19 +326,15 @@ document.getElementById('btnFindRoute').addEventListener('click', () => {
     if(!startId || !endId) return alert("Mohon pilih halte dari daftar!");
     if(startId == endId) return alert("Asal dan Tujuan sama.");
 
-    // === FIX UTAMA: BERSIHKAN MAP DARI SISA EXPLORASI ===
     clearRoutes(); 
-    // Reset status explorasi juga biar UI gak bingung
     activeRouteCode = null; 
     document.getElementById('jalurDetail').classList.add('hidden');
 
     const startObj = dbHalte.find(h => h.id == startId);
     const endObj = dbHalte.find(h => h.id == endId);
 
-    // Render Ulang Marker (karena clearRoutes menghapus cluster)
     renderMarkers();
 
-    // Gambar
     drawUserPath(startObj);
     calculateMultiLegRoute(startObj, endObj);
 });
@@ -481,10 +454,7 @@ function renderMultiLegResult(result) {
     });
 }
 
-
-// ==========================================
 // 6. HELPER LAINNYA
-// ==========================================
 function clearRoutes() {
     // 1. Hapus Control Routing
     routeLayers.forEach(control => { try { map.removeControl(control); } catch(e){} });
@@ -540,7 +510,7 @@ function calculateNearby() {
                     <p class="font-bold text-xs text-slate-700">${h.nama_halte}</p>
                     <p class="text-[10px] text-slate-400">${h.dist.toFixed(2)} km</p>
                 </div>
-                <span class="text-lg opacity-50">👉</span>
+                <span class="text-lg opacity-50"></span>
             </div>`;
     });
 }
