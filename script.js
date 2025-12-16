@@ -12,9 +12,9 @@ let markerCluster = L.markerClusterGroup({ maxClusterRadius: 40 });
 map.addLayer(markerCluster);
 
 // Layer Groups
-let exploreLayer = L.featureGroup().addTo(map); // Untuk jalur explorasi
-let userPathLayer = L.featureGroup().addTo(map); // KHUSUS Jalur User 
-let routeLayers = []; // Array untuk menyimpan control routing
+let exploreLayer = L.featureGroup().addTo(map); 
+let userPathLayer = L.featureGroup().addTo(map); 
+let routeLayers = [];
 
 // Variabel Global
 let dbJalur = [], dbHalte = [];
@@ -104,18 +104,18 @@ async function initApp() {
     }
 }
 
-// === FUNGSI SEARCH DROPDOWN (FIXED TOGGLE) ===
+// FUNGSI SEARCH DROPDOWN
 function setupSearchInput(elementId) {
     const oldSelect = document.getElementById(elementId);
     if (!oldSelect) return;
 
     const wrapper = document.createElement('div');
-    wrapper.className = "relative w-full search-wrapper"; // Class penanda
+    wrapper.className = "relative w-full search-wrapper";
 
     const input = document.createElement('input');
     input.type = "text";
     input.id = elementId;
-    input.className = "input input-bordered input-sm w-full bg-white cursor-pointer"; // Tambah cursor pointer
+    input.className = "input input-bordered input-sm w-full bg-white cursor-pointer";
     input.placeholder = "Pilih / Ketik nama halte...";
     input.autocomplete = "off";
 
@@ -139,9 +139,8 @@ function setupSearchInput(elementId) {
                 const li = document.createElement('li');
                 li.className = "p-2 hover:bg-emerald-100 cursor-pointer text-xs text-slate-700 border-b border-slate-100";
                 li.innerHTML = `<b>${h.nama_halte}</b>`;
-                // Ganti onclick jadi onmousedown biar dieksekusi sebelum blur
                 li.onmousedown = (e) => {
-                    e.preventDefault(); // Mencegah input kehilangan fokus
+                    e.preventDefault();
                     input.value = h.nama_halte;
                     input.dataset.id = h.id; 
                     list.classList.add('hidden');
@@ -366,7 +365,7 @@ function drawUserPath(startHalte) {
             const summary = routes[0].summary;
             const totalMeters = summary.totalDistance;
 
-            // --- RUMUS MANUAL WAKTU JALAN KAKI ---
+            // RUMUS MANUAL WAKTU JALAN KAKI
             // Kecepatan rata-rata jalan kaki: 4.5 km/jam (sekitar 75 meter/menit)
             const walkingSpeedMeterPerMin = 75; 
             const minutes = Math.ceil(totalMeters / walkingSpeedMeterPerMin);
